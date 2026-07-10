@@ -1,0 +1,14 @@
+name = "os-widget"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# Non-secret config — set these for your instance.
+[vars]
+GITHUB_REPO = "your-github-user/your-context-repo"
+GITHUB_BRANCH = "main"
+TASKS_PATH = "trackers/TASKS.md"
+SOUL_PATH = "SOUL.md"
+
+# Secrets are NOT stored here. Set them once after deploy:
+#   wrangler secret put GITHUB_TOKEN   # fine-grained PAT, read-only Contents on YOUR private repo only
+#   wrangler secret put WIDGET_KEY     # long random string the widget sends as ?key=

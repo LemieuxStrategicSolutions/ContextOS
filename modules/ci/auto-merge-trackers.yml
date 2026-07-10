@@ -1,0 +1,66 @@
+name: Auto-merge tracker edits
+
+# Why this exists:
+# The phone widget (via the Cloudflare worker in widget/worker) reads
+# trackers/TASKS.md from the `main` branch ONLY. Some remote agent harnesses,
+# however, force every change onto a feature branch behind a draft PR. If such
+# a PR is left unmerged, `main` — and therefore the widget — never sees the
+# edit. The trackers are daily-churn files meant to be committed freely (see
+# your repo's SYNC RULES), so this workflow lands tracker-only PRs on `main`
+# automatically and removes that stranding failure mode.
+#
+# Scope guard: it ONLY auto-merges when EVERY changed file lives under
+# trackers/. Any PR that also touches identity files (CLAUDE.md, SOUL.md,
+# USER.md, AGENTS.md) or anything else is left alone for the owner's manual OK.
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+    paths:
+      - 'trackers/**'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# If several events land on the same PR in quick succession, only the latest
+# evaluation needs to run.
+concurrency:
+  group: auto-merge-trackers-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    # Only same-repo PRs (never forks — they can't get a write token anyway).
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Auto-merge when all changes are under trackers/
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          files=$(gh pr view "$PR" --repo "$REPO" --json files --jq '.files[].path')
+          if [ -z "$files" ]; then
+            echo "PR #$PR has no changed files; nothing to do."
+            exit 0
+          fi
+
+          echo "Changed files in PR #$PR:"
+          echo "$files"
+
+          # Any file NOT under trackers/ disqualifies the PR from auto-merge.
+          non_trackers=$(printf '%s\n' "$files" | grep -v '^trackers/' || true)
+          if [ -n "$non_trackers" ]; then
+            echo "::notice::PR #$PR touches non-tracker files — leaving for manual review:"
+            printf '%s\n' "$non_trackers"
+            exit 0
+          fi
+
+          echo "All changes are under trackers/ — marking ready and squash-merging."
+          # Draft PRs (the harness default) must be marked ready before merge.
+          gh pr ready "$PR" --repo "$REPO" || true
+          gh pr merge "$PR" --repo "$REPO" --squash --delete-branch

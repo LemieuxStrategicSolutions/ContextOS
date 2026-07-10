@@ -1,0 +1,17 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+
+# never commit secrets — tokens live in platform secret stores
+.env
+.env.*
+*.key
+*.pem
+
+# cloud-sync placeholders
+*.icloud
+
+# local tooling
+node_modules/
+__pycache__/
