@@ -1,3 +1,11 @@
+---
+type: TaskTracker
+title: Tasks
+description: Canonical AI-maintained task list — sprint, domain backlog, waiting, someday.
+tags: [tasks, gtd, scrum, operational]
+timestamp: "{{TODO: ISO 8601 datetime, set at generation}}"
+---
+
 # TASKS — canonical task list
 
 <!-- AI-maintained surface. {{USER_NAME}} may never open this file — external surfaces
