@@ -59,6 +59,22 @@ Three ideas hold it together:
 | [`templates/`](templates/) | `{{PLACEHOLDER}}` skeletons for every file in your private repo. |
 | [`modules/`](modules/) | Optional working components: daily capture loop, phone widget, CI, skills, local-LLM worker. |
 
+## Open Knowledge Format (OKF)
+
+The AI-maintained trackers emit [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) frontmatter, so the private repo your AI builds is a valid OKF bundle out of the box — any OKF-aware tool can read your trackers without a bespoke parser. Each tracker template opens with a small YAML block whose one required field is `type`:
+
+```yaml
+---
+type: TaskTracker
+title: Tasks
+description: Canonical AI-maintained task list.
+tags: [tasks, gtd, scrum, operational]
+timestamp: 2026-01-01T00:00:00Z
+---
+```
+
+context-os adopts the slice of OKF that pays off at single-operator scale — a machine-readable `type` on the files an agent parses most — and deliberately skips the rest. See [`ARCHITECTURE.md`](ARCHITECTURE.md#interoperability-open-knowledge-format-okf) for exactly where it conforms and where it doesn't, and why.
+
 ## Requirements
 
 Bare minimum: a GitHub account and an AI assistant that can read this repo. Everything else — cloud file sync, an always-on machine, a memory MCP connector, Cloudflare Workers — is optional and module-gated. The installer detects what you have and only offers what fits. Non-Mac, non-Claude setups are first-class: see [`docs/sync-options.md`](docs/sync-options.md).

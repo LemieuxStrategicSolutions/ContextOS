@@ -1,3 +1,11 @@
+---
+type: RelationshipCRM
+title: People
+description: AI-maintained tiered relationship CRM — cadence, last/next touch, birthdays.
+tags: [people, crm, relationships, operational]
+timestamp: "{{TODO: ISO 8601 datetime, set at generation}}"
+---
+
 # PEOPLE — relationship engine
 
 <!-- AI-maintained CRM. Purpose: beat out-of-sight-out-of-mind — surface the right person

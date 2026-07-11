@@ -148,3 +148,27 @@ and hardening details: `modules/daily-loop/`.
   secret.
 - Unattended AI calls run with **explicitly enumerated tools only** (details and traps in
   `GOTCHAS.md`).
+
+## Interoperability: Open Knowledge Format (OKF)
+
+[OKF](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) is
+Google Cloud's vendor-neutral spec (v0.1) for handing curated context to AI agents: a
+directory of markdown files, each with a YAML frontmatter block whose one required field
+is `type`. context-os predates OKF but lands on the same shape — a versioned directory of
+markdown that both humans and agents read — so conforming is nearly free, and it lets any
+OKF-aware tool consume a generated repo without a custom parser.
+
+**Where it conforms.** The three AI-maintained trackers (`TASKS`, `PEOPLE`, `TEAM`) carry
+OKF frontmatter (`type` + `title`/`description`/`tags`/`timestamp`) — these are the files
+an agent parses programmatically most often, so a machine-readable `type` has real payoff.
+The daily notes (`daily/YYYY-MM-DD.md`) already behave like OKF's chronological log; the
+cross-links between identity files already form OKF's navigable concept graph.
+
+**Where it deliberately doesn't.** OKF prefers one small concept file per idea. The
+identity layer stays **monolithic and read-first** instead — `SOUL.md` and each spoke are
+read whole at the top of every session, and fragmenting them into one-concept-per-file
+would trade the thing that makes a read-first chief-of-staff agent reliable for interop
+this system doesn't need (it's private-forever and single-operator). OKF's reserved
+filenames (`index.md`, `log.md`) and bundle-publishing conventions are likewise skipped.
+The governing rule: **adopt the slice of any external standard that improves reliability
+or interop at your actual scale; ignore the rest.**

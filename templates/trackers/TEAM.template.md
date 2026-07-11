@@ -1,3 +1,11 @@
+---
+type: TeamTracker
+title: Team
+description: Per-person working tracker for direct reports and key collaborators.
+tags: [team, management, one-on-one, operational]
+timestamp: "{{TODO: ISO 8601 datetime, set at generation}}"
+---
+
 # TEAM — per-person working tracker
 
 <!-- Optional: for users who manage people (direct reports, a team, key collaborators).
