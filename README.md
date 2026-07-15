@@ -59,6 +59,21 @@ Three ideas hold it together:
 | [`templates/`](templates/) | `{{PLACEHOLDER}}` skeletons for every file in your private repo. |
 | [`modules/`](modules/) | Optional working components: phone widget, CI, skills, local-LLM worker, and a pointer to the graduated daily capture loop. |
 
+## The ecosystem
+
+context-os is the foundation. Each companion below is independently installable, useful on
+its own, and depends on none of the others — they compose by reading each other's plain
+files, not by importing each other.
+
+| Repo | Layer | Answers |
+|---|---|---|
+| [ContextOS-Decisions](https://github.com/LemieuxStrategicSolutions/ContextOS-Decisions) | judgment / precedent | Which past decision applies here, may I act on it, and what should acting cost? |
+| [ContextOS-AgentRelay](https://github.com/LemieuxStrategicSolutions/ContextOS-AgentRelay) | execution / authority | How do two models hand work off without either one assuming permission? |
+| [ContextOS-ContextCheck](https://github.com/LemieuxStrategicSolutions/ContextOS-ContextCheck) | evaluation / drift | Is any of this still true? |
+| [ContextOS-DailyLoop](https://github.com/LemieuxStrategicSolutions/ContextOS-DailyLoop) | capture | How does what I said on my phone become filed work? |
+| [ContextOS-RoutineLedger](https://github.com/LemieuxStrategicSolutions/ContextOS-RoutineLedger) | automation health | What is running right now, and what stopped without telling me? |
+| [ContextOS-RelationshipOS](https://github.com/LemieuxStrategicSolutions/ContextOS-RelationshipOS) | stewardship | What do I owe people, and who am I drifting from? |
+
 ## Open Knowledge Format (OKF)
 
 The AI-maintained trackers emit [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) frontmatter, so the private repo your AI builds is a valid OKF bundle out of the box — any OKF-aware tool can read your trackers without a bespoke parser. Each tracker template opens with a small YAML block whose one required field is `type`:
