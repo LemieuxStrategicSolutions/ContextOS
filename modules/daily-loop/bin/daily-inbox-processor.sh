@@ -111,8 +111,21 @@ HEALTH_DISABLED="${DAILY_LOOP_HEALTH_DISABLED:-0}"   # 1 = skip the host health 
 # mcp__<uuid> prefix desktop sessions see. Verified live: uuid-prefixed names silently
 # matched nothing → every unattended memory/calendar call was permission-blocked. Set
 # these to YOUR connectors' headless names.
-MEMORY_MCP="${DAILY_LOOP_MEMORY_MCP:-mcp__claude_ai_Memory}"
-CALENDAR_MCP="${DAILY_LOOP_CALENDAR_MCP:-mcp__claude_ai_Google_Calendar}"
+# NOTE the `-` (not `:-`): an explicitly EMPTY value must survive as empty, because empty
+# is how you declare "I have no such connector". With `:-`, setting it to "" would silently
+# hand back the default and re-break the very thing you were opting out of.
+MEMORY_MCP="${DAILY_LOOP_MEMORY_MCP-mcp__claude_ai_Memory}"
+CALENDAR_MCP="${DAILY_LOOP_CALENDAR_MCP-mcp__claude_ai_Google_Calendar}"
+# Adapter tool vocabulary. A connector's tool NAMES are vendor-specific — one memory
+# connector calls it `capture_thought`, another `add_memory`, another `create_note`. Naming
+# only the connector but hardcoding its verbs makes the loop portable in theory and broken
+# in practice (the calls silently match nothing — GOTCHAS #2). So the verbs are config too.
+# Set the connector name to "" to declare that adapter absent: its tools are then dropped
+# from the allow-list rather than passed as dangling names.
+MEMORY_CAPTURE_TOOL="${DAILY_LOOP_MEMORY_CAPTURE_TOOL:-capture_thought}"
+MEMORY_SEARCH_TOOL="${DAILY_LOOP_MEMORY_SEARCH_TOOL:-search_thoughts}"
+MEMORY_LIST_TOOL="${DAILY_LOOP_MEMORY_LIST_TOOL:-list_thoughts}"
+CALENDAR_LIST_TOOL="${DAILY_LOOP_CALENDAR_LIST_TOOL:-list_events}"
 # Optional hard guard: if set, only run when `hostname -s` matches (keeps every other
 # machine out of the loop).
 ALLOWED_HOST="${DAILY_LOOP_ALLOWED_HOST:-}"
@@ -125,6 +138,23 @@ export TZ="$TZ_NAME"
 now_stamp()  { date "+%Y-%m-%d %H:%M:%S %Z"; }
 log_line()   { printf '%s\n' "$1" >> "$LOG"; }
 note()       { printf '[daily-loop] %s\n' "$1" >&2; }
+
+# Adapter helpers. Resolve a connector verb to its full tool name, or to the empty string
+# when that adapter isn't configured — so an absent connector drops out of the allow-list
+# and the prompt instead of appearing as a dangling name that matches nothing.
+mem_tool()   { [[ -n "$MEMORY_MCP" ]]   && printf '%s__%s' "$MEMORY_MCP" "$1"; }
+cal_tool()   { [[ -n "$CALENDAR_MCP" ]] && printf '%s__%s' "$CALENDAR_MCP" "$1"; }
+
+# Join tool names with commas, skipping empties. Allow-lists are COMMA-separated — a
+# space-separated list fails silently (GOTCHAS #2), as does a stray leading/trailing comma.
+join_tools() {
+  local out="" t
+  for t in "$@"; do
+    [[ -z "$t" ]] && continue
+    out="${out:+$out,}$t"
+  done
+  printf '%s' "$out"
+}
 
 # Hard kill guard for every engine call — macOS has no GNU `timeout` by default, so this
 # is a bash-native watchdog: run the given function in the background, poll with kill -0,
@@ -318,11 +348,11 @@ The capture's raw transcript was on stdin. Read it, then:
    unsure which section, use the Waiting On / Someday section or the closest topical section —
    never invent a new top-level section without strong justification.
 4. **Never delete** existing tasks, even closed ones — they stay as historical record.
-5. **Capture to memory** ($MEMORY_MCP capture_thought) anything from the capture that:
+5. **Capture to memory** ($(mem_tool "$MEMORY_CAPTURE_TOOL")) anything from the capture that:
    - Isn't already fully captured by the TASKS.md edit you just made (nuance, context, a strategic
      read, a reason behind a decision — task lines are terse, memory carries the "why").
    - Will matter to a future session that won't have today's context.
-   - Search first ($MEMORY_MCP search_thoughts) if you suspect this is already captured, to
+   - Search first ($(mem_tool "$MEMORY_SEARCH_TOOL")) if you suspect this is already captured, to
      avoid duplicate thoughts on the same topic.
    Do NOT capture ephemeral status with no future value, or content that's already fully redundant
    with the TASKS.md line.
@@ -341,10 +371,13 @@ EOF
 }
 
 _sync_cmd() {  # _sync_cmd <instruction> <file>
+  local tools
+  tools="$(join_tools "Edit" "Read" \
+    "$(mem_tool "$MEMORY_CAPTURE_TOOL")" "$(mem_tool "$MEMORY_SEARCH_TOOL")")"
   ( cd "$REPO_ROOT" && cat "$2" | "$CLAUDE_BIN" -p "$1" \
       --output-format text \
       --permission-mode acceptEdits \
-      --allowedTools "Edit,Read,${MEMORY_MCP}__capture_thought,${MEMORY_MCP}__search_thoughts" \
+      --allowedTools "$tools" \
   )
 }
 
@@ -389,13 +422,13 @@ relevant items is fine — don't pad with filler.)
 
 ## 📅 Schedule for the Day
 - <HH:MM> — <event title>
-(Use ${CALENDAR_MCP}__list_events for $day, timezone $TZ_NAME, ordered by start time. If nothing
+(Use $(cal_tool "$CALENDAR_LIST_TOOL") for $day, timezone $TZ_NAME, ordered by start time. If nothing
 is scheduled, write the single line "No meetings today." — keep the section, don't omit it.)
 
 ## 💡 Insight for the Day
 > <one thought from the memory connector, 1-3 sentences, framed as a short reflective insight
 worth ${OWNER_NAME} seeing first thing — a pattern, a standing priority, an unresolved strategic
-thread. Pull via ${MEMORY_MCP}__search_thoughts / ${MEMORY_MCP}__list_thoughts. Pick ONE thing,
+thread. Pull via $(mem_tool "$MEMORY_SEARCH_TOOL") / $(mem_tool "$MEMORY_LIST_TOOL"). Pick ONE thing,
 don't summarize everything you find.>
 
 ## 📝 Notes Captured
@@ -407,11 +440,15 @@ EOF
 }
 
 _skeleton_cmd() {  # _skeleton_cmd <instruction>
+  local tools
+  tools="$(join_tools "Read" \
+    "$(mem_tool "$MEMORY_SEARCH_TOOL")" "$(mem_tool "$MEMORY_LIST_TOOL")" \
+    "$(cal_tool "$CALENDAR_LIST_TOOL")")"
   ( cd "$REPO_ROOT" && "$CLAUDE_BIN" -p "$1" \
       --model "$ENGINE_MODEL" \
       --output-format text \
       --permission-mode acceptEdits \
-      --allowedTools "Read,${MEMORY_MCP}__search_thoughts,${MEMORY_MCP}__list_thoughts,${CALENDAR_MCP}__list_events" \
+      --allowedTools "$tools" \
   )
 }
 

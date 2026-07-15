@@ -30,34 +30,50 @@ phone capture (Shortcut / any tool that writes a text file)
 
 ## Install
 
-1. Copy `bin/` into your private repo at `daily-loop/bin/`, and `prompts/*.md` to
-   `<SYNC_ROOT>/Prompts/`. Create `<SYNC_ROOT>/Inbox/`.
-2. Copy `daily-loop.conf.example` to `<your-repo>/daily-loop/daily-loop.conf` and edit it.
-   One file, every setting, all optional — precedence is **environment > config file >
-   built-in default**, so a one-off run can override anything without editing the file.
+Run the installer. It's idempotent, non-interactive, never clobbers a config or prompt
+you've tuned, and **schedules nothing** — see `--dry-run` first if you like.
 
-   ```sh
-   : "${DAILY_LOOP_ALLOWED_HOST:=my-always-on-box}"   # hostname -s of the primary machine
-   : "${DAILY_LOOP_TZ:=America/New_York}"             # daily rollover follows THIS, not the host
-   : "${DAILY_LOOP_OWNER:=Sam}"                       # how engine prompts refer to you
-   : "${DAILY_LOOP_MEMORY_MCP:=mcp__claude_ai_Memory}"   # headless display name — see GOTCHAS #2!
-   ```
+```sh
+bin/install.sh --repo ~/path/to/your-context-repo \
+               --sync-root ~/path/to/your/synced-folder \
+               --owner Sam --tz America/New_York \
+               --memory-mcp mcp__claude_ai_Memory \
+               --calendar-mcp mcp__claude_ai_Google_Calendar
+```
 
-   (Setting the env directly in your scheduler still works exactly as before.)
+It creates the directories, installs the processor and prompts, writes
+`daily-loop/daily-loop.conf`, drops in the sample captures, and then **preflights**: it runs
+the module's test suite and a stubbed dry run against *your* paths, and refuses to claim
+success if either fails. `--help` lists every flag; `--memory-mcp ""` declares you have no
+memory connector.
 
-3. **Test before scheduling** (three stages, in order):
+Then, in order: verify your connectors resolve in a **headless** call
+(`DAILY_LOOP_DRY_RUN=1 bash daily-loop/bin/daily-inbox-processor.sh` — this is GOTCHAS #2
+and the single most common silent failure), register the job in `AUTOMATIONS.md`, and only
+then schedule it every ~15 min as your AI agent's own scheduled task.
 
-   ```sh
-   # 1. the module's own suite — idempotency, recovery, routing, guards. No agent, no git:
-   bash daily-loop/tests/run-tests.sh
-   # 2. your plumbing — no agent calls, no git:
-   DAILY_LOOP_DRY_RUN=1 DAILY_LOOP_ENGINE_STUB=1 bash daily-loop/bin/daily-inbox-processor.sh
-   # 3. real engine, still no git — verifies headless MCP names + permissions (GOTCHAS #2):
-   DAILY_LOOP_DRY_RUN=1 bash daily-loop/bin/daily-inbox-processor.sh
-   ```
+### Configuration
 
-   Sample captures for stage 2 live in `examples/inbox/` — they cover all three routing
-   paths without waiting for a real capture.
+Everything lives in one file, `daily-loop/daily-loop.conf` (annotated reference:
+`daily-loop.conf.example`). Precedence is **environment > config file > built-in default**,
+so a one-off run overrides anything without editing the file. Setting the env directly in
+your scheduler still works exactly as before.
+
+### Adapters
+
+The loop talks to three things you might do differently: a **task list** (a Markdown file it
+edits), a **memory connector**, and a **calendar connector**. Both connectors are addressed
+by name *and by verb* —
+
+```sh
+: "${DAILY_LOOP_MEMORY_MCP:=mcp__mem0}"
+: "${DAILY_LOOP_MEMORY_CAPTURE_TOOL:=add_memory}"     # yours may not say "capture_thought"
+: "${DAILY_LOOP_MEMORY_SEARCH_TOOL:=search_memory}"
+```
+
+— because naming the connector while hardcoding its vocabulary is what makes a loop portable
+in theory and broken in practice. Set a connector to `""` and its tools drop out of the
+allow-list entirely rather than being passed as dangling names that match nothing.
 
 4. Schedule it every 15 minutes **as your AI agent's scheduled task** — on macOS do NOT
    use launchd for this (children hang on synced-folder reads; `GOTCHAS.md` #1). Register
@@ -92,6 +108,7 @@ phone capture (Shortcut / any tool that writes a text file)
 
 | File | Role |
 |---|---|
+| `bin/install.sh` | The installer. Idempotent, preflights, schedules nothing. |
 | `bin/daily-inbox-processor.sh` | The processor (heavily commented — read it). |
 | `bin/daily-inbox-fallback.sh` | Second-machine fallback runner. |
 | `bin/ledger.py` · `bin/strip_daily_header.py` | Args-only helpers (dedup ledger; skeleton merge). |

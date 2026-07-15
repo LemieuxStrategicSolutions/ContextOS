@@ -21,13 +21,27 @@
 # How the engine prompts refer to you.
 : "${DAILY_LOOP_OWNER:=the user}"
 
-# --- Connectors -------------------------------------------------------------
+# --- Adapters: memory + calendar --------------------------------------------
 # GOTCHA: a headless agent call names connectors by DISPLAY NAME (mcp__claude_ai_<Name>),
 # not the mcp__<uuid> form a desktop session shows. The uuid form silently matches nothing
 # and every unattended memory/calendar call gets permission-blocked. Use the headless name.
+#
+# Assign with `=` (not `:=`) if you want to declare a connector ABSENT: an empty value
+# means "I don't have this one", and its tools are then dropped from the allow-list rather
+# than passed as dangling names. `:=` would quietly hand back the default instead.
+#
+#   DAILY_LOOP_MEMORY_MCP=""        # <- no memory connector at all
 
 # : "${DAILY_LOOP_MEMORY_MCP:=mcp__claude_ai_Memory}"
 # : "${DAILY_LOOP_CALENDAR_MCP:=mcp__claude_ai_Google_Calendar}"
+
+# Your connector's tool VERBS. These default to one vendor's vocabulary; another calls the
+# same operation something else. Naming the connector but hardcoding its verbs is what makes
+# a loop portable in theory and broken in practice, so set these to match yours.
+# : "${DAILY_LOOP_MEMORY_CAPTURE_TOOL:=capture_thought}"   # e.g. add_memory, create_note
+# : "${DAILY_LOOP_MEMORY_SEARCH_TOOL:=search_thoughts}"    # e.g. search_memory
+# : "${DAILY_LOOP_MEMORY_LIST_TOOL:=list_thoughts}"
+# : "${DAILY_LOOP_CALENDAR_LIST_TOOL:=list_events}"
 
 # Skip the steps you have no connector for — both degrade gracefully.
 # : "${DAILY_LOOP_SYNC_DISABLED:=1}"        # skip the tasks/memory sync step

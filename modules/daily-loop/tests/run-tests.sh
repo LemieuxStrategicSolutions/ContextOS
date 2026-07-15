@@ -222,6 +222,55 @@ run_proc "$S" DAILY_LOOP_ENGINE_STUB=1 DAILY_LOOP_CONFIG="$S/repo/daily-loop/dai
          DAILY_LOOP_ALLOWED_HOST="$(hostname -s)"
 assert_file "$S/repo/daily/2030-01-05.md" "env override beat the config file's host guard"
 
+test_case "adapters: a connector's tool verbs are configurable, not hardcoded"
+S="$(new_sandbox)"
+cat > "$S/argv-agent" <<'AGENT'
+#!/usr/bin/env bash
+cat >/dev/null
+printf 'ARGV %s\n' "$*"
+AGENT
+chmod +x "$S/argv-agent"
+printf 'capture\n' > "$S/sync/Inbox/2030-01-05-0900-memo.md"
+run_proc "$S" DAILY_LOOP_CLAUDE="$S/argv-agent" DAILY_LOOP_ENGINE_TIMEOUT=15 \
+         DAILY_LOOP_SYNC_DISABLED=0 \
+         DAILY_LOOP_MEMORY_MCP=mcp__vendorX \
+         DAILY_LOOP_MEMORY_CAPTURE_TOOL=add_memory \
+         DAILY_LOOP_MEMORY_SEARCH_TOOL=find_memory
+assert_grep "$S/$LOG_REL" "mcp__vendorX__add_memory"  "memory capture verb reached the allow-list"
+assert_grep "$S/$LOG_REL" "mcp__vendorX__find_memory" "memory search verb reached the allow-list"
+
+test_case "adapters: an empty connector name drops its tools instead of passing dangling names"
+S="$(new_sandbox)"
+cat > "$S/argv-agent" <<'AGENT'
+#!/usr/bin/env bash
+cat >/dev/null
+printf 'ARGV %s\n' "$*"
+AGENT
+chmod +x "$S/argv-agent"
+printf 'capture\n' > "$S/sync/Inbox/2030-01-05-0900-memo.md"
+run_proc "$S" DAILY_LOOP_CLAUDE="$S/argv-agent" DAILY_LOOP_ENGINE_TIMEOUT=15 \
+         DAILY_LOOP_SYNC_DISABLED=0 DAILY_LOOP_MEMORY_MCP=
+assert_grep    "$S/$LOG_REL" "allowedTools Edit,Read" "allow-list is exactly Edit,Read with no memory connector"
+assert_no_grep "$S/$LOG_REL" "capture_thought"        "no dangling default tool name leaked in"
+
+test_case "installer: installs, is idempotent, and never clobbers your config"
+S="$(mktemp -d)"; mkdir -p "$S/repo/trackers" "$S/sync"; printf '# Tasks\n' > "$S/repo/trackers/TASKS.md"
+bash "$MODULE_DIR/bin/install.sh" --repo "$S/repo" --sync-root "$S/sync" --no-samples --skip-preflight >/dev/null 2>&1
+assert_file "$S/repo/daily-loop/bin/daily-inbox-processor.sh" "processor installed"
+assert_file "$S/repo/daily-loop/daily-loop.conf"              "config written"
+assert_file "$S/sync/Prompts/nudge.md"                        "prompts installed"
+printf '# hand-tuned by me\n' >> "$S/repo/daily-loop/daily-loop.conf"
+printf 'my own prompt\n' > "$S/sync/Prompts/nudge.md"
+bash "$MODULE_DIR/bin/install.sh" --repo "$S/repo" --sync-root "$S/sync" --no-samples --skip-preflight >/dev/null 2>&1
+assert_grep "$S/repo/daily-loop/daily-loop.conf" "# hand-tuned by me" "re-install kept your config"
+assert_grep "$S/sync/Prompts/nudge.md" "my own prompt"              "re-install kept your tuned prompt"
+
+test_case "installer: --dry-run changes nothing"
+S="$(mktemp -d)"; mkdir -p "$S/repo/trackers" "$S/sync"; printf '# Tasks\n' > "$S/repo/trackers/TASKS.md"
+bash "$MODULE_DIR/bin/install.sh" --repo "$S/repo" --sync-root "$S/sync" --dry-run >/dev/null 2>&1
+assert_no_file "$S/repo/daily-loop/bin/daily-inbox-processor.sh" "dry run installed nothing"
+assert_no_file "$S/repo/daily-loop/daily-loop.conf"              "dry run wrote no config"
+
 # ---------------------------------------------------------------------------
 
 printf '\n----------------------------------------\n'
