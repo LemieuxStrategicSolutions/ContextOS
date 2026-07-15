@@ -75,17 +75,24 @@ by name *and by verb* —
 in theory and broken in practice. Set a connector to `""` and its tools drop out of the
 allow-list entirely rather than being passed as dangling names that match nothing.
 
-4. Schedule it every 15 minutes **as your AI agent's scheduled task** — on macOS do NOT
-   use launchd for this (children hang on synced-folder reads; `GOTCHAS.md` #1). Register
-   it in `AUTOMATIONS.md` in the same action, state 🧪.
-5. Phone capture: an iOS Shortcut that dictates/accepts text and saves it to
-   `Inbox/YYYY-MM-DD-HHMM-<label>.md` (date-prefixed names keep processing order and
-   date attribution). Android/other: any automation that drops a text file there.
-6. Optional second machine: schedule `bin/daily-inbox-fallback.sh` hourly on a laptop —
-   it only acts when the primary has clearly missed ≥2 cycles.
-7. Optional phone page: `cd worker && npx wrangler deploy`, set the two secrets in
-   `wrangler.toml`'s comments, then bookmark `https://<worker>/daily?key=<DAILY_KEY>`
-   to the home screen.
+### Scheduling
+
+Once the preflight passes and the job is registered in `AUTOMATIONS.md` (in the same action
+— no silent automations), schedule the processor every ~15 minutes **as your AI agent's own
+scheduled task**. On macOS do **not** use launchd for this: its children hang forever on
+cloud-synced reads (`GOTCHAS.md` #1). Start it in state 🧪.
+
+### Capture and the optional extras
+
+- **Phone capture:** an iOS Shortcut that dictates or accepts text and saves it to
+  `Inbox/YYYY-MM-DD-HHMM-<label>.md`. The date prefix is load-bearing — it sets processing
+  order and decides which day's note the capture lands in. Android or anything else: any
+  automation that drops a text file there works.
+- **Second machine (optional):** schedule `bin/daily-inbox-fallback.sh` hourly on a laptop.
+  It only acts when the primary has clearly missed ≥2 cycles.
+- **Phone page (optional):** `cd worker && npx wrangler deploy`, set the two secrets named in
+  `wrangler.toml`'s comments, then bookmark `https://<worker>/daily?key=<DAILY_KEY>` to your
+  home screen.
 
 ## Behavior worth knowing (all deliberate)
 
