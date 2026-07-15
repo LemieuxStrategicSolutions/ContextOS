@@ -57,7 +57,7 @@ Three ideas hold it together:
 | [`GOTCHAS.md`](GOTCHAS.md) | Hard-won operational lessons (read before running anything unattended). |
 | [`docs/`](docs/) | Interview question bank, sync-layer options, memory-layer guide, agent governance. |
 | [`templates/`](templates/) | `{{PLACEHOLDER}}` skeletons for every file in your private repo. |
-| [`modules/`](modules/) | Optional working components: daily capture loop, phone widget, CI, skills, local-LLM worker. |
+| [`modules/`](modules/) | Optional working components: phone widget, CI, skills, local-LLM worker, and a pointer to the graduated daily capture loop. |
 
 ## Open Knowledge Format (OKF)
 
