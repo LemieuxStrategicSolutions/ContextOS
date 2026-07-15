@@ -65,6 +65,17 @@ set -euo pipefail
 # Config (every path is env-overridable)
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Optional config file — one place to set everything instead of exporting env vars in your
+# scheduler. Plain shell using `: "${VAR:=value}"`, sourced BEFORE the defaults below, so
+# precedence is: real environment > config file > built-in default. Point elsewhere with
+# DAILY_LOOP_CONFIG. See daily-loop.conf.example.
+CONFIG_FILE="${DAILY_LOOP_CONFIG:-${DAILY_LOOP_REPO:-$(cd "$SCRIPT_DIR/../.." && pwd)}/daily-loop/daily-loop.conf}"
+if [[ -f "$CONFIG_FILE" ]]; then
+  # shellcheck source=/dev/null
+  source "$CONFIG_FILE"
+fi
+
 REPO_ROOT="${DAILY_LOOP_REPO:-$(cd "$SCRIPT_DIR/../.." && pwd)}"   # daily-loop/bin -> repo root
 SYNC_ROOT="${DAILY_LOOP_SYNC_ROOT:-$(cd "$REPO_ROOT/.." && pwd)}"  # the synced folder holding the repo
 
@@ -95,6 +106,7 @@ DRY_RUN="${DAILY_LOOP_DRY_RUN:-0}"
 ENGINE_STUB="${DAILY_LOOP_ENGINE_STUB:-0}"
 SYNC_DISABLED="${DAILY_LOOP_SYNC_DISABLED:-0}"   # 1 = skip the TASKS.md/memory sync step entirely
 SKELETON_DISABLED="${DAILY_LOOP_SKELETON_DISABLED:-0}"   # 1 = skip the once-per-day skeleton
+HEALTH_DISABLED="${DAILY_LOOP_HEALTH_DISABLED:-0}"   # 1 = skip the host health check (it can drop an Inbox capture)
 # GOTCHA: headless `claude -p` names claude.ai connectors mcp__claude_ai_<Name>, NOT the
 # mcp__<uuid> prefix desktop sessions see. Verified live: uuid-prefixed names silently
 # matched nothing → every unattended memory/calendar call was permission-blocked. Set
@@ -561,7 +573,9 @@ fi
 trap 'rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
 
 # Health check runs every tick regardless of whether there's capture work to do.
-run_health_check
+# Disable-able because it can DROP A CAPTURE into the Inbox (the self-alert), which a test
+# harness must be able to switch off to keep a sandbox deterministic.
+[[ "$HEALTH_DISABLED" == "1" ]] || run_health_check
 
 # Pull before processing so the push at the end fast-forwards cleanly.
 if [[ "$DRY_RUN" != "1" ]]; then

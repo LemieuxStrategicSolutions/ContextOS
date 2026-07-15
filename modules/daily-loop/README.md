@@ -32,25 +32,32 @@ phone capture (Shortcut / any tool that writes a text file)
 
 1. Copy `bin/` into your private repo at `daily-loop/bin/`, and `prompts/*.md` to
    `<SYNC_ROOT>/Prompts/`. Create `<SYNC_ROOT>/Inbox/`.
-2. Set the env (wherever your scheduler sets env for the task):
+2. Copy `daily-loop.conf.example` to `<your-repo>/daily-loop/daily-loop.conf` and edit it.
+   One file, every setting, all optional — precedence is **environment > config file >
+   built-in default**, so a one-off run can override anything without editing the file.
 
    ```sh
-   DAILY_LOOP_ALLOWED_HOST=<always-on-hostname>   # hostname -s of the primary machine
-   DAILY_LOOP_TZ=<your IANA timezone>
-   DAILY_LOOP_OWNER="<your first name>"           # how engine prompts refer to you
-   DAILY_LOOP_MEMORY_MCP=mcp__claude_ai_<YourMemoryConnector>    # see GOTCHAS #2!
-   DAILY_LOOP_CALENDAR_MCP=mcp__claude_ai_<YourCalendarConnector>
-   # every path is also overridable: DAILY_LOOP_INBOX/_PROMPTS/_DAILY/_TASKS/_LEDGER/_LOG/...
+   : "${DAILY_LOOP_ALLOWED_HOST:=my-always-on-box}"   # hostname -s of the primary machine
+   : "${DAILY_LOOP_TZ:=America/New_York}"             # daily rollover follows THIS, not the host
+   : "${DAILY_LOOP_OWNER:=Sam}"                       # how engine prompts refer to you
+   : "${DAILY_LOOP_MEMORY_MCP:=mcp__claude_ai_Memory}"   # headless display name — see GOTCHAS #2!
    ```
 
-3. **Test before scheduling** (both stages, in order):
+   (Setting the env directly in your scheduler still works exactly as before.)
+
+3. **Test before scheduling** (three stages, in order):
 
    ```sh
-   # plumbing only — no agent calls, no git:
+   # 1. the module's own suite — idempotency, recovery, routing, guards. No agent, no git:
+   bash daily-loop/tests/run-tests.sh
+   # 2. your plumbing — no agent calls, no git:
    DAILY_LOOP_DRY_RUN=1 DAILY_LOOP_ENGINE_STUB=1 bash daily-loop/bin/daily-inbox-processor.sh
-   # real engine, still no git — verifies headless MCP names + permissions (GOTCHAS #2):
+   # 3. real engine, still no git — verifies headless MCP names + permissions (GOTCHAS #2):
    DAILY_LOOP_DRY_RUN=1 bash daily-loop/bin/daily-inbox-processor.sh
    ```
+
+   Sample captures for stage 2 live in `examples/inbox/` — they cover all three routing
+   paths without waiting for a real capture.
 
 4. Schedule it every 15 minutes **as your AI agent's scheduled task** — on macOS do NOT
    use launchd for this (children hang on synced-folder reads; `GOTCHAS.md` #1). Register
@@ -88,5 +95,32 @@ phone capture (Shortcut / any tool that writes a text file)
 | `bin/daily-inbox-processor.sh` | The processor (heavily commented — read it). |
 | `bin/daily-inbox-fallback.sh` | Second-machine fallback runner. |
 | `bin/ledger.py` · `bin/strip_daily_header.py` | Args-only helpers (dedup ledger; skeleton merge). |
+| `daily-loop.conf.example` | Every setting in one file. Copy, edit, done. |
 | `prompts/` | `#prompt:` routing convention + three starter prompts. |
+| `examples/inbox/` | Sample captures covering all three routing paths. |
+| `tests/run-tests.sh` | The suite. Pure bash — no framework, agent, network, or git. |
 | `worker/` | Optional Cloudflare Worker: today's note as a private mobile page. |
+
+## Tests
+
+```sh
+bash tests/run-tests.sh
+```
+
+Each test runs the **real processor** against a throwaway sandbox with `DAILY_LOOP_DRY_RUN=1`
+and either the built-in engine stub or a fake agent binary, so the plumbing under test is
+the real thing rather than a mock of it. What's covered is what an unattended loop lives or
+dies on:
+
+- **A capture is never lost** — engine failure *and* empty engine output both leave the
+  source file in the inbox, unledgered, for the next tick.
+- **Idempotency** — a re-dropped capture doesn't double-post; an empty tick leaves the daily
+  note byte-identical.
+- **Recovery** — a capture stranded by a failed tick is processed on the next one; a stale
+  lock from a crashed run self-heals (and says so in the log) instead of wedging the loop
+  forever.
+- **Guards** — a live lock makes the tick a no-op, the host guard keeps other machines out,
+  housekeeping files are ignored.
+- **Routing** — an explicit `#prompt:` is honored; an unknown one falls back to default
+  handling and logs that it did.
+- **Config precedence** — the config file is read, and the environment still beats it.
