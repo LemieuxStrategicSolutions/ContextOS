@@ -19,7 +19,7 @@ git clone git@github.com:{{GITHUB_USER}}/{{REPO_NAME}}.git   # or via the host's
 
 # Flat-path links (skip if not using them; Windows: use mklink — see the template
 # repo's docs/sync-options.md)
-for f in SOUL.md CLAUDE.md USER.md AGENTS.md AUTOMATIONS.md; do
+for f in SOUL.md CLAUDE.md START-HERE.md AGENTS.md AUTOMATIONS.md; do
   [ -e "$f" ] && [ ! -L "$f" ] && mv "$f" "$f.pre-symlink.bak"
   ln -sf "{{REPO_NAME}}/$f" "$f"
 done

@@ -42,7 +42,7 @@ risk — `GOTCHAS.md` #4).
 ```sh
 cd "{{SYNC_ROOT}}"
 # flat paths some desktop apps read → repo files, same inode, no copy
-for f in SOUL.md CLAUDE.md USER.md AGENTS.md AUTOMATIONS.md; do
+for f in SOUL.md CLAUDE.md START-HERE.md AGENTS.md AUTOMATIONS.md; do
   [ -e "$f" ] && [ ! -L "$f" ] && mv "$f" "$f.pre-symlink.bak"   # preserve any real file
   ln -sf "{{REPO_NAME}}/$f" "$f"
 done

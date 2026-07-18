@@ -33,6 +33,12 @@ phone capture → Inbox/ → [always-on machine, every ~15 min]
    → (optional) a Worker renders today's note as a private mobile page
 ```
 
+The `[always-on machine, every ~15 min]` step is the default, but it's not the only
+shape. Where the loop must survive every machine sleeping, capture can be **event-driven**
+instead — a small Worker writes the capture straight into the repo, and the push triggers
+a hosted CI run in seconds, with no local machine awake. That's the cloud-native tier;
+see [`ARCHITECTURE.md`](../../ARCHITECTURE.md#when-you-outgrow-the-always-on-machine-cloud-native-execution).
+
 See [`ARCHITECTURE.md`](../../ARCHITECTURE.md#the-daily-loop-optional-module-but-the-daily-heartbeat)
 for where it sits in the system, and `GOTCHAS.md` #1, #2, #3, #8 and #9 before you schedule
 anything unattended.

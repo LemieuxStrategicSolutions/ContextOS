@@ -21,7 +21,7 @@ Establish your own capabilities and the user's environment **before** asking int
 | Question | Why it matters |
 |---|---|
 | Do I (the installer AI) have filesystem + shell access right now? | Gates whether you build files directly or hand the user copy-paste blocks. |
-| Which assistants will the user run day-to-day? (Claude Code / Codex / web chat / mobile / multiple) | Determines which context "spokes" to generate (`CLAUDE.md`, `AGENTS.md`, `USER.md`). |
+| Which assistants will the user run day-to-day? (Claude Code / Codex / web chat / mobile / multiple) | Determines which context "spokes" to generate (`CLAUDE.md`, `AGENTS.md`, `START-HERE.md` for web/mobile). |
 | Can the user create a private GitHub (or equivalent) repo? | The canonical home. Non-negotiable for the full system; a local git repo is the fallback. |
 | What OS + cloud file sync exists? (iCloud / Dropbox / OneDrive / none) | Picks the sync topology and symlink strategy — `docs/sync-options.md`. |
 | Is there an always-on machine? (desktop that never sleeps, home server, mini PC) | Gates the daily capture loop's scheduler and any recurring automation. |

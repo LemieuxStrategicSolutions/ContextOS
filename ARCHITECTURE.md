@@ -32,7 +32,7 @@ One universal behavior file, plus one thin context file per environment:
         decision guardrails · delegation · task framework
            ▲               ▲                ▲
            │               │                │
-      CLAUDE.md        AGENTS.md         USER.md
+      CLAUDE.md        AGENTS.md      START-HERE.md
    (desktop agent    (other agent      (web/mobile,
     w/ filesystem)    harnesses)        no filesystem)
       each spoke: environment plumbing + facts only
@@ -49,6 +49,14 @@ Why not one big file? Because environments genuinely differ (a filesystem agent 
 symlink rules; a mobile chat needs none), and because **duplicated content drifts** — the
 single worst failure mode of multi-environment context. Keep shared facts in the hub or
 in exactly one spoke, and let the others point to it.
+
+This is why the web/mobile spoke is **`START-HERE.md`, a pointer rather than a snapshot**.
+An earlier design had it carry a prose bio + a copy of the operating context; that copy is
+exactly what drifts (the reference implementation's snapshot spoke went stale twice before
+this was corrected). `START-HERE.md` instead routes a cold session *to* the live files —
+`SOUL.md`, the trackers, recent daily notes — and states the tie-break rule out loud: if a
+snapshot ever disagrees with the live files, the live files win. A spoke that stores
+nothing can't go stale.
 
 ## 3. Three-layer memory
 
@@ -79,6 +87,18 @@ compares the registry against live state and flags drift both ways.
 
 This is the difference between "a helpful set of loops" and "an unauditable swarm."
 It's also your kill switch inventory when something misbehaves at 3am.
+
+**Location is a first-class status, not an afterthought.** A routine is either *portable*
+(can run anywhere — cloud runner, any machine) or *intentionally local* (deliberately
+pinned to one machine because its job needs that machine's filesystem, a local model, a
+desktop app, or an authenticated session). The registry records which, **with the reason
+and the kill switch**, so a routine that lives on one laptop *on purpose* never gets
+flagged as drift by the reconciliation pass. This reframes "should everything be
+machine-independent?" from an unbounded migration into a bounded, honest question: migrate
+the **essential set** — the routines whose job genuinely must run with every machine
+asleep (capture, memory durability, the read paths a phone hits) — and document the rest as
+intentionally local. Most routines are the second kind, and saying so out loud is the
+discipline.
 
 ## 5. Governed delegation
 
@@ -137,6 +157,34 @@ phone / any capture tool
 The capture inbox lives *outside* the repo (where phone tools can write); the published
 daily notes live *inside* it (so web sessions and Workers can read them). Working code
 and hardening details: `modules/daily-loop/`.
+
+### When you outgrow the always-on machine (cloud-native execution)
+
+The loop above assumes a machine that never sleeps runs the processor on a timer. That is
+the correct, simplest default, and most setups should start there. But the always-on
+machine is a single point of failure: close the laptop while travelling and capture
+freshness halts. The essential set (idea #4) can be lifted off it entirely:
+
+```text
+phone → a small Worker writes the capture straight into the repo (a git push)
+      → the push triggers a hosted CI run (event-driven, ~seconds — not a 15-min poll)
+      → the run does the same route → summarize → file → reconcile → commit
+      → web/mobile sessions read the live repo directly through the git host
+```
+
+Two shifts make this work: **capture becomes event-driven** (a repo push fires the
+processor, so there's no polling latency and nothing to miss), and **execution moves to a
+hosted runner** (CI checkout → commit-back), so no local machine need be awake. The
+governing question is idea #4's: a routine earns this treatment only if its *job* needs to
+run with every machine asleep — capture, memory durability, the phone's read paths. The
+rest stays intentionally local.
+
+> **Status — emerging, not settled.** This tier is proven for the essential set in the
+> reference implementation (event-driven capture and a phone-readable context repo running
+> with every machine asleep), with a few routines still graduating out of watched mode. The
+> always-on model above remains the documented default; treat the cloud-native path as the
+> next tier up once the always-on machine becomes the thing you're routing around, not the
+> thing you're relying on.
 
 ## Trust boundaries and secrets
 

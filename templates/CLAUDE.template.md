@@ -85,5 +85,5 @@ file **in the same action**. If it isn't in `AUTOMATIONS.md`, it shouldn't be ru
 
 ## Cross-device context
 
-`SOUL.md` (hub) · `USER.md` (web/mobile spoke) · `AGENTS.md` (other-harness spoke) ·
+`SOUL.md` (hub) · `START-HERE.md` (web/mobile cold-start spoke) · `AGENTS.md` (other-harness spoke) ·
 `memory.md` · `SETUP.md` (wiring + recovery) · `AUTOMATIONS.md` (registry)

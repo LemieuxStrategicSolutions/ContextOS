@@ -23,7 +23,7 @@ Works with Claude Code, Codex, and any assistant that can read files and follow 
                         ├────────────────────────────┤
       identity layer →  │  SOUL.md      (behavior)    │  one persona, every environment
                         │  CLAUDE.md / AGENTS.md /    │  per-environment context "spokes"
-                        │  USER.md                    │
+                        │  START-HERE.md              │
                         │  memory.md    (memory map)  │
                         │  AUTOMATIONS.md (registry)  │  every loop/cron listed — no silent automations
       operational  →    │  trackers/TASKS.md          │  GTD×Scrum task system (AI-maintained)

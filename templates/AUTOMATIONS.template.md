@@ -13,6 +13,12 @@ something misbehaves.
 **State legend:** ✅ enabled · ⏸ paused · ▶︎ manual-trigger only · 🧪 training mode (new,
 watched, not yet trusted)
 
+**Location legend:** ☁️ portable (runs anywhere — hosted runner or any machine) · 🏠
+intentionally local (deliberately pinned to one machine — records the reason + kill switch
+so the reconciliation pass never flags it as drift). Location is a first-class status: a
+routine pinned to one machine *on purpose* is not the same as a routine that only happens
+to run there. See `ARCHITECTURE.md` idea #4.
+
 ## System 1 — {{TODO: e.g. desktop agent scheduled tasks, per machine}}
 
 | Task | Schedule | State | What it does |
@@ -31,6 +37,17 @@ watched, not yet trusted)
 | Automation | System | Cadence | What it does |
 |------------|--------|---------|--------------|
 | *(none yet — remember GOTCHAS #1 before adding launchd jobs that touch synced folders)* | | | |
+
+## Intentionally-local ledger (🏠)
+
+Routines deliberately pinned to one machine — because their job needs that machine's
+filesystem, a local model, a desktop app, or an authenticated session — with the reason
+and the kill switch. Listing them here is what keeps the reconciliation pass from flagging
+them as drift, and stops "should this be cloud-native?" from being re-litigated every week.
+
+| Routine | Pinned to | Why local (not portable) | Kill switch |
+|---------|-----------|--------------------------|-------------|
+| *(none yet — e.g. a local-LLM drafting worker: needs the local model endpoint; kill = stop the launch agent)* | | | |
 
 ## Maintenance
 
