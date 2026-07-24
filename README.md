@@ -42,11 +42,13 @@ Works with Claude Code, Codex, and any assistant that can read files and follow 
                                                        • auto-merge CI for tracker edits
 ```
 
-Three ideas hold it together:
+Five ideas hold it together:
 
 1. **One durable home.** A private git repo is the canonical identity + memory layer. Every AI session — any vendor, any device — reads it first, so you never re-explain yourself. Full architecture: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 2. **The AI owns the paperwork.** Task lists, relationship trackers, and daily notes are surfaces the *AI* reads and writes. You talk; it files. See the tracker templates in [`templates/`](templates/).
 3. **No silent automations.** Every scheduled loop on every machine is listed in one registry file, or it doesn't run. See [`templates/AUTOMATIONS.template.md`](templates/AUTOMATIONS.template.md).
+4. **The surface is a render, not a log.** One file is the item ledger; anything the owner reads is *re-derived* from it, never appended to — so a correction replaces its stale line instead of sitting next to it, and a tap on the phone records closure back to the ledger. See the reconcile layer in [`ARCHITECTURE.md`](ARCHITECTURE.md#the-reconcile-layer-the-surface-is-a-render-not-a-log).
+5. **The system audits itself.** Machines post heartbeats; a nightly no-LLM pass checks the system's own invariants and escalates violations onto the owner's daily surface; a weekly pass proposes rule *diffs* the owner approves or rejects. Green loops are not the goal — a system that notices its own drift is.
 
 ## What's in this repo
 

@@ -186,6 +186,54 @@ rest stays intentionally local.
 > next tier up once the always-on machine becomes the thing you're routing around, not the
 > thing you're relying on.
 
+## The reconcile layer: the surface is a render, not a log
+
+Capture (above) is the loop's first half. The second half is what a production audit of
+the reference implementation exposed as the actual weakest link — not capturing items,
+but **reconciling and closing** them. The disease has one sentence: *every layer is
+append-only, and no layer is authoritative at read time.* Symptoms, all observed in
+production while every individual loop ran "green":
+
+- The daily surface carried an item **and** the later correction that superseded it, side
+  by side — while the underlying tracker file was perfectly correct the whole time.
+- A read-only surface meant item closure was unobservable: ~90% of daily items ended the
+  day indeterminate, making "nothing falls through" unprovable rather than false.
+- A process header sat two weeks stale because every loop's contract covered its own
+  output and none covered the operating model itself.
+
+The architectural commitments that remove the defect *class* (not the instances):
+
+1. **One file is the item ledger.** The task tracker holds every item with a stable ID.
+   Everything else that displays items is downstream of it.
+2. **Surfaces are deterministic renders.** The daily board is *re-derived* from the
+   ledger on every change — never appended to. A correction updates the ledger and the
+   stale line structurally disappears. The renderer is plain code: zero tokens, runs
+   identically for any AI or none.
+3. **Closure is observable.** The phone surface writes back — a tap posts `done:<id>`
+   through the same authenticated capture worker, and the ledger records it. Once closure
+   is data, "fell through" becomes a measurable defect with a date, not a feeling.
+4. **Machines have heartbeats.** Anything always-on posts a dumb periodic beat (which
+   services are up, nothing more) through the capture worker. A side-effect log is not a
+   heartbeat (`GOTCHAS.md` #12) — a dead machine cannot report that it is dead.
+5. **The system audits itself, in two tiers.** A nightly **deterministic** pass checks
+   invariants — no near-duplicate surface lines, process headers current, memory exports
+   fresh, heartbeats alive, no stranded captures — and escalates violations onto the
+   owner's daily surface as dated items. A weekly **adversarial** pass (this one is an
+   LLM) reads the week's surfaces, diffs, and closure record and asks *what did this
+   system get wrong, and which rule should change* — its output is a **proposed diff to a
+   rule file**, approved or rejected by the owner, not a report nobody acts on. Approved
+   diffs land in the correction corpus every AI reads. That is the self-learning loop,
+   closed — and it keeps the human where they belong: judging proposals, not doing
+   paperwork.
+
+> **Status — the commitments are made; the render cutover is staged.** In the reference
+> implementation the audit, heartbeats, and nightly invariants went live the same day
+> (the first invariant run caught three real defects, and its escalation reached the
+> owner's phone in about 90 seconds); the ledger-ID + render migration is the current
+> build. Adopt the commitments in this order: heartbeats and invariants are cheap and
+> immediately honest; the render migration touches your daily surface's contract, so do
+> it deliberately.
+
 ## Trust boundaries and secrets
 
 - The private repo holds personal context — **never** credentials. Tokens live in

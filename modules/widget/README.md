@@ -1,5 +1,16 @@
 # Phone dashboard widget
 
+> **⚠️ Production lesson (read first).** The reference implementation ran this widget for
+> a month and then **retired it**: parsing the task file directly made the widget a
+> *second surface* that drifted from reality whenever the file lagged the day's actual
+> events — a red light over a task that was already done elsewhere is worse than no
+> widget, because the owner stops trusting the lights. The durable rule that came out of
+> it: **a glanceable surface must render from the same ledger-derived surface the daily
+> page uses — never parse the tracker file as its own independent view.** (This is
+> `GOTCHAS.md` #13 in miniature.) The module below still works as documented; if you
+> deploy it, point it at your rendered daily note rather than the raw tracker, or accept
+> that you're signing up to keep two surfaces honest by hand.
+
 A glanceable home-screen widget showing what needs your attention, parsed **live** from
 `trackers/TASKS.md` + the Top 3 in `SOUL.md`. Tapping it opens a swipeable scrum board
 (Backlog / This Sprint / Waiting / Done) built from the same file.
