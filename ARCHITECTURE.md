@@ -1,270 +1,160 @@
-# ARCHITECTURE — how the system is designed
+# Mason framework architecture
 
-Five load-bearing ideas. Everything in `templates/` and `modules/` implements one of them.
+Mason connects owned context, capture, useful processing, and follow-through.
+This document defines the framework's contracts. It does not imply every integration
+is bundled or running; see [ROADMAP.md](ROADMAP.md).
 
-## 1. One durable home: the private context repo
+## 1. One durable home: owned records
 
-A private git repo is the **canonical, version-controlled context layer**. Not any one
-session's memory, not a vendor's account storage — a repo you own, with history.
+A private, version-controlled workspace holds behavior, original notes, decisions,
+and task records. Git is this starter's implementation, not the product identity.
+Large recordings may live in separate private storage with stable references.
 
-- Every AI session, on every device, from any vendor, **reads it first** and then acts.
-- Desktop sessions with filesystem access read a local clone; web/mobile sessions read
-  the repo through the git host.
-- Changes happen deliberately, via commits. `git log` is the audit trail of who (which
-  session) changed what and why.
+- Assistants read relevant records through explicitly configured access.
+- Current user instructions and current original records outrank older AI recall.
+- Record dates, authorship, sources, corrections, and supersession.
+- Preserve local unsynced work during recovery; a remote copy is not proof that
+  every recent edit reached it.
 
-The repo splits into two churn rates:
+Keep low-churn behavior and approval files separate from high-churn operational
+trackers. Review permissions deliberately. Optional tracker-only CI must be
+explicitly installed and limited to approved paths.
 
-- **Identity layer** (changes rarely, reviewed like code): `SOUL.md`, per-environment
-  context files, `memory.md`, `SETUP.md`, `AUTOMATIONS.md`.
-- **Operational trackers** (change daily, committed freely): `trackers/`, `daily/`.
+## 2. Shared behavior, environment-specific access
 
-This split matters operationally — see the CI module (`modules/ci/`), which auto-merges
-tracker-only changes while leaving identity changes for human review.
+`SOUL.md` defines behavior, priorities, and authority. Thin `CLAUDE.md`,
+`AGENTS.md`, and `START-HERE.md` entry points describe how each environment
+reaches the same records. Keep shared facts in one place to reduce drift.
 
-## 2. Identity hub-and-spoke
+An assistant without workspace access must report that limitation. A familiar
+persona or a paid subscription does not establish access or cross-session memory.
 
-One universal behavior file, plus one thin context file per environment:
+## 3. Owned memory, derived recall, action surfaces
 
-```
-                     SOUL.md  (the hub)
-        persona · priorities · autonomy contract ·
-        decision guardrails · delegation · task framework
-           ▲               ▲                ▲
-           │               │                │
-      CLAUDE.md        AGENTS.md      START-HERE.md
-   (desktop agent    (other agent      (web/mobile,
-    w/ filesystem)    harnesses)        no filesystem)
-      each spoke: environment plumbing + facts only
-```
+| Layer | Role | Authority |
+|---|---|---|
+| Owned notes, artifacts, decisions, and task tracker | Durable evidence and current records | Authoritative, subject to current user direction |
+| Optional memory/search connector | Find and recall approved content | Derived, rebuildable, never overriding original records |
+| Daily board or client | Capture and act on work | Task views derive from the tracker; original captures remain sources |
 
-- **`SOUL.md`** defines *who the agent is and how it behaves* — everywhere. Persona,
-  current top-3 priorities, how the user works with the AI, autonomy hard lines,
-  decision guardrails, delegation rules, and the task-management framework.
-- **Each spoke** carries only what's environment-specific: tool wiring, sync rules,
-  glossary, key-people table, project list. Every spoke's first line is "Read `SOUL.md`
-  first."
-
-Why not one big file? Because environments genuinely differ (a filesystem agent needs
-symlink rules; a mobile chat needs none), and because **duplicated content drifts** — the
-single worst failure mode of multi-environment context. Keep shared facts in the hub or
-in exactly one spoke, and let the others point to it.
-
-This is why the web/mobile spoke is **`START-HERE.md`, a pointer rather than a snapshot**.
-An earlier design had it carry a prose bio + a copy of the operating context; that copy is
-exactly what drifts (the reference implementation's snapshot spoke went stale twice before
-this was corrected). `START-HERE.md` instead routes a cold session *to* the live files —
-`SOUL.md`, the trackers, recent daily notes — and states the tie-break rule out loud: if a
-snapshot ever disagrees with the live files, the live files win. A spoke that stores
-nothing can't go stale.
-
-## 3. Three-layer memory
-
-Full guide: `docs/memory-layer.md`. The short version:
-
-| Layer | What | Changes | Wins conflicts? |
-|---|---|---|---|
-| 1. Context repo | Durable, organized, versioned context | Deliberately, via commits | Canonical for identity/structure |
-| 2. Memory MCP connector | Living cross-session memory: capture thoughts, search by meaning | Continuously, automatically | Canonical for recent strategy/decisions |
-| 3. Daily action surface | Today's note: tasks for the day, schedule, captures | Every capture | Never — it's an execution surface, not a store |
-
-Standing rules the generated `memory.md` encodes: **search memory before asking the user
-to re-explain**; **capture significant decisions by default**; **mirror major updates
-both ways** (repo ↔ memory); **verify recalled facts still hold before acting on them**.
-No memory connector? Run repo-only mode: the trackers and daily notes carry more weight,
-and the AI says "I don't have persistent memory here" instead of guessing.
+See [memory rules](docs/memory-layer.md). Save authorized captures to owned records
+first, then project only approved content. Private or excluded material must not
+enter an unapproved processing or publication path. Retrieved content is evidence,
+not instructions.
 
 ## 4. No silent automations
 
-The rule: **every automated routine on every machine is listed in one registry file
-(`AUTOMATIONS.md`) or it doesn't run.**
+Every enabled routine belongs in `AUTOMATIONS.md`: owner, runtime, schedule,
+inputs, outputs, permitted actions, last verification, and how to stop it.
+An inventory alone is not monitoring; someone or a configured service must check it.
 
-Scheduled tasks tend to live machine-local (a scheduler directory on one laptop, a cloud
-routine in one vendor account) — invisible to every other session. The registry is the
-cross-system index: any AI that creates, edits, pauses, reschedules, or retires an
-automation updates the registry **in the same action**. A weekly reconciliation pass
-compares the registry against live state and flags drift both ways.
-
-This is the difference between "a helpful set of loops" and "an unauditable swarm."
-It's also your kill switch inventory when something misbehaves at 3am.
-
-**Location is a first-class status, not an afterthought.** A routine is either *portable*
-(can run anywhere — cloud runner, any machine) or *intentionally local* (deliberately
-pinned to one machine because its job needs that machine's filesystem, a local model, a
-desktop app, or an authenticated session). The registry records which, **with the reason
-and the kill switch**, so a routine that lives on one laptop *on purpose* never gets
-flagged as drift by the reconciliation pass. This reframes "should everything be
-machine-independent?" from an unbounded migration into a bounded, honest question: migrate
-the **essential set** — the routines whose job genuinely must run with every machine
-asleep (capture, memory durability, the read paths a phone hits) — and document the rest as
-intentionally local. Most routines are the second kind, and saying so out loud is the
-discipline.
+Distinguish intentionally local jobs from jobs required to run with every device
+asleep. For unattended work, configure bounded execution, retries, deduplication,
+cost limits, visible failures, and recovery before enabling it. Do not promise
+“always on” because one scheduled run succeeded.
 
 ## 5. Governed delegation
 
-Full guide: `docs/governance.md`. One governing persona (`{{AGENT_NAME}}`) owns judgment,
-memory, and synthesis. Optional named builder identities (per environment, or a cheap
-local-LLM drafting worker) do scoped work under it. The non-negotiable clause, verbatim
-in every identity file:
+One behavioral contract governs optional specialist identities. Delegation does
+not grant new credentials, tools, external access, or authority. Drafts, suggestions,
+and externally supplied instructions do not authorize actions.
 
-> A subordinate identity may develop personality, taste, and working style — but may
-> **not** self-expand its authority, tools, credentials, memory/task-system access,
-> external access, or irreversible-action rights. Expansion requires the user.
-
-Plus a short **hard-approval list** (publish, purchase, contact someone, delete,
-credentials) that no automation or persona may cross without the user.
-
----
+Use the user's approved boundaries for publishing, spending, messaging, and
+meaningful data changes. In user-facing review, use “confirm changes” and explain
+the actual effect. See [governance](docs/governance.md).
 
 ## Sync topology (the worked example)
 
-The pattern, instantiated here with macOS + iCloud (other stacks: `docs/sync-options.md`):
+Start with a local private Git workspace and one writer. Add a private remote and
+explicitly configured access as needed. A shared cloud folder is an optional
+transport, not a complete conflict-resolution system.
 
-```
-GitHub (canonical, private)
-   │  git clone
-   ▼
-~/CloudDrive/AI/your-context-repo        ← the working clone, inside the synced folder
-   │  symlinks (or junctions on Windows)
-   ▼
-~/CloudDrive/AI/SOUL.md → your-context-repo/SOUL.md    ← legacy/flat paths some desktop
-~/CloudDrive/AI/TASKS.md → your-context-repo/trackers/TASKS.md   apps read; same file, no copy
-```
+Use [sync options](docs/sync-options.md) and document the chosen topology in
+`SETUP.md`. Avoid multiple independent processes synchronizing the same Git
+metadata. Preserve uncommitted edits, inspect divergence, and resolve conflicts
+before declaring the devices current.
 
-Rules that keep it sane (encoded in the generated `SETUP.md` and spokes):
-
-- **The git host is canonical.** A clone that desyncs gets re-cloned, not trusted.
-- Desktop sessions: `git pull` before editing, `git push` after. Web/mobile: edit via
-  commits through the host.
-- **Never `git push --force`.** Never silently clobber another session's work.
-- Edit identity files at the repo path or via tools that preserve symlinks. Desktop apps
-  that "atomic-save" replace a symlink with a divergent real file — the #1 sync failure
-  (detection and repair in `GOTCHAS.md`).
+The public framework does not bundle a seamless mobile sync engine.
 
 ## The daily loop (optional module, but the daily heartbeat)
 
-```
-phone / any capture tool
-   → drops a text file in  <synced>/Inbox/
-   → always-on machine runs the processor every ~15 min:
-        route by "#prompt:" tag → summarize (headless AI call)
-        → append to  daily/YYYY-MM-DD.md
-        → sync step: reconcile against trackers/TASKS.md + bank context to memory
-        → git commit + push
-   → (optional) Cloudflare Worker renders today's note as a private, key-gated mobile page
-```
-
-The capture inbox lives *outside* the repo (where phone tools can write); the published
-daily notes live *inside* it (so web sessions and Workers can read them). Working code
-and hardening details: `modules/daily-loop/`.
-
-### When you outgrow the always-on machine (cloud-native execution)
-
-The loop above assumes a machine that never sleeps runs the processor on a timer. That is
-the correct, simplest default, and most setups should start there. But the always-on
-machine is a single point of failure: close the laptop while travelling and capture
-freshness halts. The essential set (idea #4) can be lifted off it entirely:
+The [Daily Loop companion](modules/daily-loop/README.md) is installed separately.
+Its documented local shape is:
 
 ```text
-phone → a small Worker writes the capture straight into the repo (a git push)
-      → the push triggers a hosted CI run (event-driven, ~seconds — not a 15-min poll)
-      → the run does the same route → summarize → file → reconcile → commit
-      → web/mobile sessions read the live repo directly through the git host
+capture → inbox → processor → owned daily note
+        → reconcile approved tasks/decisions → optional memory projection
 ```
 
-Two shifts make this work: **capture becomes event-driven** (a repo push fires the
-processor, so there's no polling latency and nothing to miss), and **execution moves to a
-hosted runner** (CI checkout → commit-back), so no local machine need be awake. The
-governing question is idea #4's: a routine earns this treatment only if its *job* needs to
-run with every machine asleep — capture, memory durability, the phone's read paths. The
-rest stays intentionally local.
+Keep the original capture independently of processing success. Stable capture
+identifiers and completion receipts should distinguish saved, processed, and
+synced. Retry failures without duplicate notes or commitments.
 
-> **Status — emerging, not settled.** This tier is proven for the essential set in the
-> reference implementation (event-driven capture and a phone-readable context repo running
-> with every machine asleep), with a few routines still graduating out of watched mode. The
-> always-on model above remains the documented default; treat the cloud-native path as the
-> next tier up once the always-on machine becomes the thing you're routing around, not the
-> thing you're relying on.
+Audio adds separate requirements: interrupted recording recovery, replay,
+transcript correction, and original/transcript/output relationships. This
+repository does not provide the recording app or transcription service.
+
+## When you outgrow the always-on machine (cloud-native execution)
+
+A hosted capture endpoint and queue/runner can replace a device-local processor
+when capture must work while devices sleep. Git-host events are one possible
+transport, not a required design. Object storage and other managed runtimes need
+their own access, concurrency, recovery, export, and cost controls.
+
+This is an architectural option, not a deployed service supplied here. Register
+and test the selected runtime. Measure end-to-end freshness rather than treating
+an accepted upload as completed processing.
 
 ## The reconcile layer: the surface is a render, not a log
 
-Capture (above) is the loop's first half. The second half is what a production audit of
-the reference implementation exposed as the actual weakest link — not capturing items,
-but **reconciling and closing** them. The disease has one sentence: *every layer is
-append-only, and no layer is authoritative at read time.* Symptoms, all observed in
-production while every individual loop ran "green":
+One task tracker is authoritative. Generated task views should be rebuilt from it,
+so corrections replace stale projections. Original notes are different: retain
+them as source records rather than rewriting them to match today's view.
 
-- The daily surface carried an item **and** the later correction that superseded it, side
-  by side — while the underlying tracker file was perfectly correct the whole time.
-- A read-only surface meant item closure was unobservable: ~90% of daily items ended the
-  day indeterminate, making "nothing falls through" unprovable rather than false.
-- A process header sat two weeks stale because every loop's contract covered its own
-  output and none covered the operating model itself.
+- Distinguish an idea, an AI suggestion, an explicit commitment, and a decision.
+- Confirm proposed changes according to the user's rules.
+- Preserve stable item identities and source links through edits and retries.
+- Record completion and waiting states in the existing tracker.
+- Check for stranded captures, stale views, duplicate writes, and unavailable runtimes.
+- Treat proposed behavioral changes as reviewable changes, not self-granted authority.
 
-The architectural commitments that remove the defect *class* (not the instances):
+These are integration requirements. The public templates alone do not implement
+every renderer, write-back control, heartbeat, or invariant check.
 
-1. **One file is the item ledger.** The task tracker holds every item with a stable ID.
-   Everything else that displays items is downstream of it.
-2. **Surfaces are deterministic renders.** The daily board is *re-derived* from the
-   ledger on every change — never appended to. A correction updates the ledger and the
-   stale line structurally disappears. The renderer is plain code: zero tokens, runs
-   identically for any AI or none.
-3. **Closure is observable.** The phone surface writes back — a tap posts `done:<id>`
-   through the same authenticated capture worker, and the ledger records it. Once closure
-   is data, "fell through" becomes a measurable defect with a date, not a feeling.
-4. **Machines have heartbeats.** Anything always-on posts a dumb periodic beat (which
-   services are up, nothing more) through the capture worker. A side-effect log is not a
-   heartbeat (`GOTCHAS.md` #12) — a dead machine cannot report that it is dead.
-5. **The system audits itself, in two tiers.** A nightly **deterministic** pass checks
-   invariants — no near-duplicate surface lines, process headers current, memory exports
-   fresh, heartbeats alive, no stranded captures — and escalates violations onto the
-   owner's daily surface as dated items. A weekly **adversarial** pass (this one is an
-   LLM) reads the week's surfaces, diffs, and closure record and asks *what did this
-   system get wrong, and which rule should change* — its output is a **proposed diff to a
-   rule file**, approved or rejected by the owner, not a report nobody acts on. Approved
-   diffs land in the correction corpus every AI reads. That is the self-learning loop,
-   closed — and it keeps the human where they belong: judging proposals, not doing
-   paperwork.
+## Portability and useful processing
 
-> **Status — the commitments are made; the render cutover is staged.** In the reference
-> implementation the audit, heartbeats, and nightly invariants went live the same day
-> (the first invariant run caught three real defects, and its escalation reached the
-> owner's phone in about 90 seconds); the ledger-ID + render migration is the current
-> build. Adopt the commitments in this order: heartbeats and invariants are cheap and
-> immediately honest; the render migration touches your daily surface's contract, so do
-> it deliberately.
+Store prompt definitions alongside owned data where the selected integration
+supports it. Connect each derived result to its source, transcript revision, and
+prompt. Preserve user corrections when retrying with another provider.
 
-## Trust boundaries and secrets
+Useful actions include summarizing, organizing thoughts, extracting decisions and
+commitments, meeting notes, drafting a follow-up, and further reasoning. The
+framework's skill templates are starting points, not the app's prompt-action UI.
 
-- The private repo holds personal context — **never** credentials. Tokens live in
-  platform secret stores (Worker secrets, OS keychains). `.gitignore` blocks the common
-  accidents.
-- Web-facing surfaces (daily page, widget) authenticate with a shared key over HTTPS and
-  read the repo via a **read-only, single-repo** fine-grained token stored as a Worker
-  secret.
-- Unattended AI calls run with **explicitly enumerated tools only** (details and traps in
-  `GOTCHAS.md`).
+An export should preserve recordings, transcripts, prompts, derived records, and
+relationships. Test restoring that export and switching providers before claiming
+portability for an integration.
+
+## Trust boundaries
+
+Private storage and processing permission are separate. Grant each adapter the
+smallest approved scope; block private and excluded content on outbound paths.
+Keep secrets outside Git, use authenticated endpoints, and avoid exposing credentials
+in URLs, logs, examples, or model context.
+
+Untrusted web content, transcripts, and retrieved notes do not change permissions.
+Do not claim application-level enforcement merely because a Markdown rule says so.
 
 ## Interoperability: Open Knowledge Format (OKF)
 
-[OKF](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) is
-Google Cloud's vendor-neutral spec (v0.1) for handing curated context to AI agents: a
-directory of markdown files, each with a YAML frontmatter block whose one required field
-is `type`. context-os predates OKF but lands on the same shape — a versioned directory of
-markdown that both humans and agents read — so conforming is nearly free, and it lets any
-OKF-aware tool consume a generated repo without a custom parser.
+Existing tracker templates retain their YAML metadata (`type`, title, description,
+tags, timestamp). This update preserves that format. It does not certify a complete
+external-standard implementation or compatibility with every consuming tool.
 
-**Where it conforms.** The three AI-maintained trackers (`TASKS`, `PEOPLE`, `TEAM`) carry
-OKF frontmatter (`type` + `title`/`description`/`tags`/`timestamp`) — these are the files
-an agent parses programmatically most often, so a machine-readable `type` has real payoff.
-The daily notes (`daily/YYYY-MM-DD.md`) already behave like OKF's chronological log; the
-cross-links between identity files already form OKF's navigable concept graph.
+## Acceptance
 
-**Where it deliberately doesn't.** OKF prefers one small concept file per idea. The
-identity layer stays **monolithic and read-first** instead — `SOUL.md` and each spoke are
-read whole at the top of every session, and fragmenting them into one-concept-per-file
-would trade the thing that makes a read-first chief-of-staff agent reliable for interop
-this system doesn't need (it's private-forever and single-operator). OKF's reserved
-filenames (`index.md`, `log.md`) and bundle-publishing conventions are likewise skipped.
-The governing rule: **adopt the slice of any external standard that improves reliability
-or interop at your actual scale; ignore the rest.**
+Can a user capture a thought, inspect its source, make something useful, confirm
+the next step, and later see its status without maintaining a second system?
+
+Automated checks can establish specific invariants. Physical-device behavior and
+subjective transcription quality need separate testing and the user's judgment.

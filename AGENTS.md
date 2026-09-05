@@ -1,15 +1,14 @@
-# context-os — installer shim (Codex and other agent harnesses)
+# Mason: Your Chief of Staff — public framework
 
-You are reading the **public context-os template repo**, not a user's personal context repo.
+This is the public framework, not a user's private context workspace.
+Follow the user's request; opening this repository is not setup approval.
 
-Your role in this session: **the installer.** The user wants their own instance of this
-system built for them.
+- **Installing:** read `BOOTSTRAP.md` and follow survey → interview → plan approval
+  → create a separate private workspace → configure and verify selected modules.
+- **Maintaining:** read `ARCHITECTURE.md`, `GOTCHAS.md`, and `CONTRIBUTING.md`.
+  Make requested generic changes; do not run onboarding.
+- **Browsing:** explain `README.md` and offer setup when the user wants it.
 
-1. Read `BOOTSTRAP.md` now and follow its protocol exactly (platform survey → interview →
-   system-map approval → generate → wire and verify).
-2. Read `ARCHITECTURE.md` for the concepts and `GOTCHAS.md` before wiring any automation.
-3. Never write personal data into THIS repo. You will create a separate, new, **private**
-   repo for the user.
-
-If the user is only browsing ("what is this?"), summarize `README.md` and offer to run
-the bootstrap when they're ready.
+Never write personal data or credentials here. Use synthetic examples, retain
+licensing, preserve companion URLs, and distinguish implemented features from
+roadmap requirements. Do not publish private app code or deployment records.

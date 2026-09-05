@@ -1,106 +1,122 @@
-# context-os
+# Mason: Your Chief of Staff
 
-**Build your own AI operating system: a private, version-controlled home base that any AI assistant reads first — durable memory, task trackers, automations, and a daily capture loop, all owned by you.**
+**Give your AI a reliable place to pick up where you left off—and a clear way to carry work forward.**
 
-This is not an app. It's a *pattern*, packaged so an AI can install it for you. You don't follow the instructions — your AI does.
+Mason is a provider-independent framework for a personal AI chief of staff.
+It connects context, capture, decisions, tasks, and review around records you own.
+The aim is less copying between apps and less remembering what happens next.
 
-## The one instruction
+**This repository contains the public framework, templates, and optional modules.**
+It is not the Mason app, an app-source release, a hosted service, or a ready-made
+cross-device sync service. Setup and connected tools are required.
 
-Clone this repo (or just paste its URL), then tell your AI assistant:
+Previously called **ContextOS**, this framework keeps its existing repository URL
+and companion names so links and installations continue to work.
 
-> **"Read `BOOTSTRAP.md` in this repo and set this system up for me."**
+## Start small
 
-Your AI will survey your platform, interview you, show you a system map for approval, and then build **your own private context repo** — adapted to your operating system, your cloud sync, your assistants, and your life. This public repo stays generic; everything personal lands in the private repo your AI creates.
+Ask a file-capable AI assistant:
 
-Works with Claude Code, Codex, and any assistant that can read files and follow a protocol. If you open this repo *in* Claude Code or Codex, the root `CLAUDE.md` / `AGENTS.md` shims turn the session into the installer automatically.
+> Read BOOTSTRAP.md and help me set up the Mason framework in a separate private
+> workspace. Start with context, daily notes, and one task list. Show me the plan
+> before creating anything or enabling automations.
 
-## What you end up with
+The [setup protocol](BOOTSTRAP.md) checks your platform, asks what you need,
+and gets your approval before building your private workspace. Browsing this
+repository does not install anything. Claude Code, Codex, and other file-capable
+assistants can follow the protocol; web/mobile access needs a separately configured
+connector. A local Git workspace is enough to start; remote hosting is optional.
 
-```
-                        ┌────────────────────────────┐
-                        │   YOUR PRIVATE CONTEXT REPO │  ← canonical, version-controlled
-                        │  (GitHub, always private)   │
-                        ├────────────────────────────┤
-      identity layer →  │  SOUL.md      (behavior)    │  one persona, every environment
-                        │  CLAUDE.md / AGENTS.md /    │  per-environment context "spokes"
-                        │  START-HERE.md              │
-                        │  memory.md    (memory map)  │
-                        │  AUTOMATIONS.md (registry)  │  every loop/cron listed — no silent automations
-      operational  →    │  trackers/TASKS.md          │  GTD×Scrum task system (AI-maintained)
-                        │  trackers/PEOPLE.md         │  tiered relationship CRM (AI-maintained)
-                        │  daily/YYYY-MM-DD.md        │  daily notes from the capture loop
-                        └──────────┬─────────────────┘
-                                   │ read first by every AI session, on every device
-        ┌──────────────────────────┼──────────────────────────┐
-        ▼                          ▼                          ▼
-  desktop AI sessions       web / mobile AI            optional modules:
-  (filesystem access,       (read via GitHub)          • daily capture loop (phone → inbox →
-  symlinked into your                                    processed note → auto-synced tasks)
-  cloud-drive folder)                                  • phone dashboard widget
-                                                       • persistent-memory MCP connector
-                                                       • local-LLM drafting worker
-                                                       • auto-merge CI for tracker edits
-```
+Try the [synthetic walkthrough](docs/first-session.md) before connecting real data.
 
-Five ideas hold it together:
+## The everyday experience we are working toward
 
-1. **One durable home.** A private git repo is the canonical identity + memory layer. Every AI session — any vendor, any device — reads it first, so you never re-explain yourself. Full architecture: [`ARCHITECTURE.md`](ARCHITECTURE.md).
-2. **The AI owns the paperwork.** Task lists, relationship trackers, and daily notes are surfaces the *AI* reads and writes. You talk; it files. See the tracker templates in [`templates/`](templates/).
-3. **No silent automations.** Every scheduled loop on every machine is listed in one registry file, or it doesn't run. See [`templates/AUTOMATIONS.template.md`](templates/AUTOMATIONS.template.md).
-4. **The surface is a render, not a log.** One file is the item ledger; anything the owner reads is *re-derived* from it, never appended to — so a correction replaces its stale line instead of sitting next to it, and a tap on the phone records closure back to the ledger. See the reconcile layer in [`ARCHITECTURE.md`](ARCHITECTURE.md#the-reconcile-layer-the-surface-is-a-render-not-a-log).
-5. **The system audits itself.** Machines post heartbeats; a nightly no-LLM pass checks the system's own invariants and escalates violations onto the owner's daily surface; a weekly pass proposes rule *diffs* the owner approves or rejects. Green loops are not the goal — a system that notices its own drift is.
+**Capture → understand → confirm → follow through → review**
 
-## What's in this repo
+- **Capture:** keep the original input and its date, not just an AI summary.
+- **Understand:** connect transcripts, summaries, and custom prompt results to their sources.
+- **Confirm:** distinguish an idea from a commitment. Let the user confirm changes.
+- **Follow through:** update the existing task or decision record, not a second tracking system.
+- **Review:** show what changed, what is waiting, and what failed or needs attention.
 
-| Path | What it is |
+These are design requirements, not a claim that this repository ships every step.
+See [availability and roadmap](ROADMAP.md) for the boundary between templates,
+optional integrations, and work still needed.
+
+## What you can use now
+
+| Component | In this repository |
 |---|---|
-| [`BOOTSTRAP.md`](BOOTSTRAP.md) | **Start here (or rather: your AI starts here).** The installer protocol. |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | The system design: identity hub-and-spoke, three-layer memory, sync topology, governance. |
-| [`GOTCHAS.md`](GOTCHAS.md) | Hard-won operational lessons (read before running anything unattended). |
-| [`docs/`](docs/) | Interview question bank, sync-layer options, memory-layer guide, agent governance, linking/backlinks. |
-| [`templates/`](templates/) | `{{PLACEHOLDER}}` skeletons for every file in your private repo. |
-| [`modules/`](modules/) | Optional working components: phone widget, CI, skills, local-LLM worker, and a pointer to the graduated daily capture loop. |
+| Shared behavior and permissions | [SOUL template](templates/SOUL.template.md) and environment-specific entry points |
+| User-owned continuity | [Memory rules](docs/memory-layer.md), notes, and decision records |
+| One task list | [Task tracker template](templates/trackers/TASKS.template.md) |
+| Visible routines | [Automation registry template](templates/AUTOMATIONS.template.md) |
+| Reusable AI actions | [Skill templates](modules/skills/README.md) for capture, decisions, reviews, and planning |
+| Optional extensions | [Modules](modules/) and independently installed companions below |
 
-## The ecosystem
+A template describes behavior; it is not a running service. The installer must
+verify each chosen integration and name what is unavailable.
 
-context-os is the foundation. Each companion below is independently installable, useful on
-its own, and depends on none of the others — they compose by reading each other's plain
-files, not by importing each other.
+## The principles
 
-| Repo | Layer | Answers |
-|---|---|---|
-| [ContextOS-Decisions](https://github.com/LemieuxStrategicSolutions/ContextOS-Decisions) | judgment / precedent | Which past decision applies here, may I act on it, and what should acting cost? |
-| [ContextOS-AgentRelay](https://github.com/LemieuxStrategicSolutions/ContextOS-AgentRelay) | execution / authority | How do two models hand work off without either one assuming permission? |
-| [ContextOS-ContextCheck](https://github.com/LemieuxStrategicSolutions/ContextOS-ContextCheck) | evaluation / drift | Is any of this still true? |
-| [ContextOS-DailyLoop](https://github.com/LemieuxStrategicSolutions/ContextOS-DailyLoop) | capture | How does what I said on my phone become filed work? |
-| [ContextOS-RoutineLedger](https://github.com/LemieuxStrategicSolutions/ContextOS-RoutineLedger) | automation health | What is running right now, and what stopped without telling me? |
-| [ContextOS-RelationshipOS](https://github.com/LemieuxStrategicSolutions/ContextOS-RelationshipOS) | stewardship | What do I owe people, and who am I drifting from? |
+1. **Your records come first.** Current user instructions and original records outrank
+   older AI interpretations. Search indexes and memory connectors are replaceable.
+2. **AI choice stays open.** Keep notes and relationships portable. Every assistant
+   still needs explicitly configured access; a subscription alone does not grant it.
+3. **Useful context stays connected.** Preserve source links, dates, corrections,
+   decisions, and task outcomes.
+4. **Approval stays human.** Drafting is not sending. Suggested work is not a commitment.
+   External actions and meaningful data changes follow the user's approval rules.
+5. **Reliability must be observable.** A saved capture, a processed note, and a synced
+   note are different states. Report only the steps that actually succeeded.
 
-## Open Knowledge Format (OKF)
+Read the [architecture](ARCHITECTURE.md), [governance](docs/governance.md),
+and [operational lessons](GOTCHAS.md) before enabling unattended work.
 
-The AI-maintained trackers emit [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) frontmatter, so the private repo your AI builds is a valid OKF bundle out of the box — any OKF-aware tool can read your trackers without a bespoke parser. Each tracker template opens with a small YAML block whose one required field is `type`:
+## Optional companions
 
-```yaml
----
-type: TaskTracker
-title: Tasks
-description: Canonical AI-maintained task list.
-tags: [tasks, gtd, scrum, operational]
-timestamp: 2026-01-01T00:00:00Z
----
-```
+The existing ContextOS names are compatibility names. These projects have separate
+installation and validation instructions; listing them here does not install them.
 
-context-os adopts the slice of OKF that pays off at single-operator scale — a machine-readable `type` on the files an agent parses most — and deliberately skips the rest. See [`ARCHITECTURE.md`](ARCHITECTURE.md#interoperability-open-knowledge-format-okf) for exactly where it conforms and where it doesn't, and why.
+| Project | Purpose |
+|---|---|
+| [ContextOS-Decisions](https://github.com/LemieuxStrategicSolutions/ContextOS-Decisions) | Decision records and precedent |
+| [ContextOS-AgentRelay](https://github.com/LemieuxStrategicSolutions/ContextOS-AgentRelay) | Scoped AI-to-AI handoffs |
+| [ContextOS-ContextCheck](https://github.com/LemieuxStrategicSolutions/ContextOS-ContextCheck) | Context freshness and drift checks |
+| [ContextOS-DailyLoop](https://github.com/LemieuxStrategicSolutions/ContextOS-DailyLoop) | Capture processing |
+| [ContextOS-RoutineLedger](https://github.com/LemieuxStrategicSolutions/ContextOS-RoutineLedger) | Routine inventory and health |
+| [ContextOS-RelationshipOS](https://github.com/LemieuxStrategicSolutions/ContextOS-RelationshipOS) | Relationship follow-through |
 
-## Requirements
+## Mason and Reflect Open
 
-Bare minimum: a GitHub account and an AI assistant that can read this repo. Everything else — cloud file sync, an always-on machine, a memory MCP connector, Cloudflare Workers — is optional and module-gated. The installer detects what you have and only offers what fits. Non-Mac, non-Claude setups are first-class: see [`docs/sync-options.md`](docs/sync-options.md).
+This framework defines the context and operating rules. The separately developed
+Mason app is an interaction layer built on Reflect Open. Neither that app's source
+nor its distribution is included here. This is not an official Reflect Open release
+or a claim of endorsement. Contributions to upstream projects follow their own
+review and licensing processes.
 
-## Privacy model
+## Privacy and costs
 
-- **This repo:** generic forever. No personal data, ever.
-- **Your repo:** private forever. Your AI is instructed to create it private and keep secrets out of git entirely (tokens live in platform secret stores, never in files).
+Keep personal notes in a **separate private workspace**. Never put recordings,
+credentials, private histories, or real customer examples in this public repository.
+Private storage alone does not prevent disclosure to an AI provider: configure
+explicit access and processing boundaries. Private or excluded content must not be
+sent through a connector merely because it can read the workspace.
+
+The framework has no subscription requirement of its own. AI usage, storage,
+hosting, and automation can incur separate charges. Start with manual operation;
+enable only the services you need, with budgets and failure alerts.
+
+## Documentation and contributions
+
+- [Setup](BOOTSTRAP.md) · [Architecture](ARCHITECTURE.md) · [Sync options](docs/sync-options.md)
+- [Roadmap and availability](ROADMAP.md) · [Changelog](CHANGELOG.md)
+- [Contributing safely](CONTRIBUTING.md)
+
+Small, documented improvements with synthetic examples are welcome. No claims of
+universal reliability or transcription quality: those require evidence from the
+actual integration and the user's own use.
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+MIT. See [LICENSE](LICENSE); existing copyright notices are retained.

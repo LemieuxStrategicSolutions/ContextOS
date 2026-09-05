@@ -14,8 +14,11 @@ real stakes gets archived.
    - **Accepted risk** — what could go wrong that we're knowingly living with.
    - **Revisit trigger** — the concrete signal that reopens this.
 2. Add a one-line entry to `decisions/DECISIONS.md` (date · decision · link).
-3. Capture decision + rationale + accepted risk to the memory connector (if present).
-4. If the decision creates work, add the task(s) to `trackers/TASKS.md` in the same turn.
+3. Project decision + rationale + accepted risk to an approved connector only when
+   permitted by `memory.md`. Block private and excluded content, preserve the
+   owned source link, and report projection failures.
+4. If the decision establishes a commitment, update `trackers/TASKS.md` under the
+   user's approval rules. Suggested actions remain proposals until confirmed.
 
 **Reconstruction mode:** when asked "why did we decide X?", read the memo first, then
 memory — answer from the record, not from vibes.

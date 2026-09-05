@@ -1,8 +1,9 @@
 # GOTCHAS — operational lessons, learned the hard way
 
-Read this before wiring anything unattended. Every item below cost real debugging time
-in a production instance of this system. Installer AIs: several of these change *how*
-you install, not just how you troubleshoot.
+Read this before wiring anything unattended. These historical field lessons are
+not current certification of any runtime or a guarantee that a suggested recovery
+fits every setup. Verify the actual platform, preserve unsaved work, and test
+before scheduling.
 
 ## 1. macOS: launchd + cloud-synced folders = silent hangs
 
@@ -170,7 +171,7 @@ machine running the same task fleet means the flip creates a double-writer inste
 retiring one.
 
 **Fix:** before flipping, check the *output's* history, not the task registries: if two
-writers were ever live on the same file, the file's git log shows duplicate same-day
-commits. No duplicates across the full history = provably one writer. Cheap, and it
-catches writers no registry knows about. (And keep the flip atomic: enable cloud +
-disable local in one change, never two.)
+writers were live on the same file, history may reveal duplicate same-day commits.
+No duplicates is not proof of one writer: inspect live jobs, credentials, and
+write paths too. Quiesce the old writer and verify it has stopped before enabling
+the replacement; observe the cutover and retain a rollback plan.
