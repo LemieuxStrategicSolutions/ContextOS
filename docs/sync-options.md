@@ -1,8 +1,13 @@
 # Sync options — where the clone lives and how devices reach it
 
-The invariant: **the git host is canonical.** Everything else is a working copy. Pick the
-topology below that matches the user's platform; the generated `SETUP.md` encodes the
-choice.
+Owned records are authoritative; remote and local copies can each contain changes
+the other has not received. Start with a plain local clone and one writer. The
+generated `SETUP.md` must document the chosen transport and recovery procedure.
+
+The historical options below require explicit testing. Do not let cloud-folder
+sync and independent Git writers race over the same `.git` directory. Prefer
+separate local clones for multiple writers and a separate synced capture inbox.
+None of these options alone supplies a seamless mobile sync engine.
 
 ## Decision table
 
@@ -33,9 +38,10 @@ risk — `GOTCHAS.md` #4).
 - `git pull` before editing, `git push` after (desktop). Web/mobile sessions edit via
   commits through the host.
 - **Never `git push --force`.**
-- A desynced clone gets re-cloned, not trusted.
-- Two machines editing the same tracker concurrently is normal — small, path-scoped
-  commits + rebase pulls keep it painless (the daily-loop processor shows the pattern).
+- Preserve uncommitted files and unpushed commits before any recovery. Inspect
+  divergence; never replace a clone or reset it just because the remote differs.
+- Concurrent edits can conflict. Use scoped commits, explicit conflict handling,
+  and end-to-end verification; rebase alone does not guarantee safe unattended sync.
 
 ## Symlink setup (macOS/Linux example — parameterize into SETUP.md)
 
@@ -61,5 +67,6 @@ admin or developer mode), or junction the whole folder and skip per-file links.
   with `ls -la`, reconcile into the repo, re-link.
 - **Cloud drive "online-only" placeholders**: iCloud/OneDrive may evict file contents;
   a script then reads a stub. Mark the repo folder "always keep on this device."
-- **Sync conflict copies** (`file (Conflicted copy).md`): the git repo is the referee —
-  diff against HEAD, fold in what's wanted, delete the copy.
+- **Sync conflict copies** (`file (Conflicted copy).md`): preserve both, compare
+  their contents and history, and ask the user to resolve ambiguous edits. Do not
+  delete a copy until its contents are accounted for and removal is approved.

@@ -1,6 +1,8 @@
-# BOOTSTRAP.md — installer protocol
+# Mason — installer protocol
 
-**You, the AI reading this, are the installer.** Your user pointed you at this repo because they want the system it describes — a private, version-controlled context repo that every one of their AI sessions reads first, plus optional automation modules. Your job is to interview them, design their instance, and build it.
+**Use this protocol only when the user requests setup.** If they are browsing or
+maintaining this public framework, follow that request instead. For setup, interview
+the user, propose a small private workspace, and build only what they approve.
 
 Ground rules before anything else:
 
@@ -22,11 +24,11 @@ Establish your own capabilities and the user's environment **before** asking int
 |---|---|
 | Do I (the installer AI) have filesystem + shell access right now? | Gates whether you build files directly or hand the user copy-paste blocks. |
 | Which assistants will the user run day-to-day? (Claude Code / Codex / web chat / mobile / multiple) | Determines which context "spokes" to generate (`CLAUDE.md`, `AGENTS.md`, `START-HERE.md` for web/mobile). |
-| Can the user create a private GitHub (or equivalent) repo? | The canonical home. Non-negotiable for the full system; a local git repo is the fallback. |
+| Does the user want a private remote or local-only Git workspace? | Start locally if desired; a remote is needed only for integrations that require it. |
 | What OS + cloud file sync exists? (iCloud / Dropbox / OneDrive / none) | Picks the sync topology and symlink strategy — `docs/sync-options.md`. |
 | Is there an always-on machine? (desktop that never sleeps, home server, mini PC) | Gates the daily capture loop's scheduler and any recurring automation. |
-| Is a persistent-memory MCP connector available? (any "capture/search thoughts" style tool) | Gates memory layer 2 — `docs/memory-layer.md` has the degraded repo-only mode. |
-| Can the user deploy a Cloudflare Worker (free tier) or similar? | Gates the mobile daily-note page and the phone widget modules. |
+| Is an approved memory/search connector available? | Optional derived recall; owned records remain authoritative without it. |
+| Can the user deploy an authenticated hosted endpoint? | Gates hosted modules; verify current costs and usage limits before enabling. |
 | iPhone with Shortcuts + Scriptable, Android, or neither? | Gates the capture entry point and the widget client. |
 
 Produce a short **capability matrix** from the answers. Every module in `modules/` lists its prerequisites; offer only the modules whose prerequisites are met, and mention the rest as "available later if you add X."
@@ -41,14 +43,16 @@ Full question bank with answer→file mappings: `docs/interview-guide.md`. Ask i
 4. **Task model appetite** — full GTD×Scrum (sprint + effort scores + WSJF backlog, see `templates/trackers/TASKS.template.md`) or a simple flat list to start. Recommend starting simple unless they're already systems people.
 5. **Key people** — 5–15 names with role/relationship (colleagues, family, clients). Seeds the people tracker; more get added organically.
 6. **Module selection** — walk the capability-gated module menu with a one-line pitch each. Get explicit yes/no per module.
-7. **Memory + review rhythm** — if a memory MCP exists, confirm capture-by-default is acceptable; pick a weekly-review day.
+7. **Memory + review rhythm** — agree which captures can be saved automatically,
+   which content is private or excluded, and which providers may process it.
+   Save to owned records first; connectors are optional projections. Pick a review day.
 
 ## Phase 2 — System map approval (hard gate)
 
 Present one screen, no more:
 
 - Private repo name + host + visibility (**private**)
-- Sync topology chosen (e.g. "GitHub canonical → Dropbox clone → junctions" or "GitHub only, web sessions read via GitHub")
+- Sync topology chosen, writer ownership, and conflict/recovery handling
 - Files to be generated (the exact list)
 - Modules selected / deferred
 - The autonomy contract in three bullets (what the AI may do alone, what always needs approval)
@@ -60,7 +64,9 @@ Get an explicit "yes, build it." Then build.
 
 1. Create the new **private** repo. Confirm visibility before the first push — this repo will hold personal data.
 2. Generate every selected file from `templates/`, filling placeholders from interview answers. The full placeholder table is below; prune sections for modules the user declined rather than leaving dead references. **A generated file must never contain a dangling reference to a file you didn't generate.**
-3. Copy selected `modules/` code into the repo (e.g. `daily-loop/`, `widget/`, `.github/workflows/` for the CI module — the CI file activates in *their* repo, deliberately not in this one).
+3. Copy only selected bundled modules. Where a module is a companion pointer
+   (such as Daily Loop), follow its own installation instructions rather than
+   treating the pointer as installed code. CI activates only after explicit approval.
 4. Adapt all paths to the chosen sync topology (tables in `docs/sync-options.md`): the repo clone location, symlink/junction creation commands in their `SETUP.md`, script env vars.
 5. Seed the trackers: domains as sections, the interviewed people into `PEOPLE.md` tiers, 2–3 real starter tasks from the interview into `TASKS.md` — formatted per the file's own conventions.
 6. Commit with clean messages. Nothing secret goes in any file: tokens and keys live in platform secret stores (e.g. `wrangler secret put`), never in git.
@@ -95,6 +101,11 @@ Then run the verification checklist:
 - [ ] No `{{...}}` placeholder remains except deliberate `{{TODO: ...}}` items, which are listed for the user.
 - [ ] `git log` shows clean history; `git grep -iE 'token|api[_-]?key|secret'` in the new repo returns nothing sensitive.
 - [ ] Every enabled automation appears in `AUTOMATIONS.md`; every `AUTOMATIONS.md` row corresponds to something real.
-- [ ] The user knows the one-line daily entry point ("just talk to your AI; capture things to your inbox") and the recovery doc (`SETUP.md`) exists.
+- [ ] An authorized capture reaches owned records with a source and date. A retry
+      does not create a duplicate task; a failed save is reported as not saved.
+- [ ] Private/excluded content does not reach an unapproved connector. No connector
+      is required to retrieve an already saved owned record.
+- [ ] The user knows the actual configured capture entry point and what it cannot
+      do yet; the recovery doc (`SETUP.md`) exists.
 
 Close by telling the user what got built, what was deferred, and the first thing to try tomorrow morning.

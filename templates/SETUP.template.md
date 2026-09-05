@@ -43,8 +43,10 @@ A desktop app's atomic-save can replace a link with a divergent real file.
 
 ## If the clone desyncs
 
-Don't trust it — re-clone. The git host is canonical. Move the broken clone aside first
-(`mv {{REPO_NAME}} {{REPO_NAME}}.broken`), re-clone, then diff for anything unpushed.
+Stop competing writers. Preserve all uncommitted files and unpushed commits before
+changing anything. Inspect status and local/remote history, then reconcile wanted
+edits. Ask about ambiguous conflicts. A fresh clone is an optional recovery step
+after preservation, not a reason to discard the existing workspace.
 
 ## Recovery drill (worth running once)
 

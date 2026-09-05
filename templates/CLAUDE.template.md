@@ -28,7 +28,8 @@ AI session reads this layer first, then acts on {{USER_NAME}}'s behalf.
 
 ## Sync rules
 
-- **The git host is canonical.** A desynced clone gets re-cloned, not trusted.
+- Preserve uncommitted edits and unpushed commits before sync recovery. Compare
+  local and remote histories; neither copy is automatically complete.
 - `git pull` before editing, `git push` after.
 - **Never `git push --force`.** Never silently clobber another session's work.
 - Edit identity files at the repo path (or via tools that preserve symlinks) — a desktop
